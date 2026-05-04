@@ -44,6 +44,4 @@ export default function TaggedProductsSection({ creativeId, products }: Props) {
                 )}
         </div>
       );
-    </div>
-          );
         }
