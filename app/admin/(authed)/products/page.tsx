@@ -40,7 +40,7 @@ export default async function ProductLibraryPage({ searchParams }: Props) {
   if (available === 'true') filtered = filtered.filter((p) => p.available);
   if (available === 'false') filtered = filtered.filter((p) => !p.available);
 
-  const productTypes = [...new Set((allProducts || []).map((p) => p.product_type).filter(Boolean))].sort();
+  const productTypes = Array.from(new Set((allProducts || []).map((p) => p.product_type).filter(Boolean))).sort();
 
   function timeAgo(iso: string) {
     const diff = Date.now() - new Date(iso).getTime();
