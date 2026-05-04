@@ -7,18 +7,26 @@ import { redirect } from 'next/navigation';
 export async function updateCreative(id: string, formData: FormData) {
   const title = (formData.get('title') as string)?.trim();
   const notes = (formData.get('notes') as string) || null;
-  const status = formData.get('status') as 'draft' | 'active' | 'archived';
+  const status = formData.get('status') as 'ready_to_launch' | 'active' | 'archived';
+  const platforms = formData.getAll('platforms') as string[];
+  const ad_copy = (formData.get('ad_copy') as string) || null;
+  const post_link = (formData.get('post_link') as string) || null;
+  const ad_code = (formData.get('ad_code') as string) || null;
   if (!title) return;
   const supabase = await createClient();
-  await supabase.from('creatives').update({ title, notes, status }).eq('id', id);
+  await supabase.from('creatives').update({
+    title,
+    notes,
+    status,
+    platforms,
+    ad_copy,
+    post_link,
+    ad_code,
+  }).eq('id', id);
   revalidatePath('/admin/creatives/' + id);
   revalidatePath('/admin');
 }
 
-/**
- * Generate a signed upload URL so the client can PUT directly to Supabase Storage.
- * This bypasses Vercel's 4.5 MB body limit for server actions.
- */
 export async function getSignedUploadUrl(
   creativeId: string,
   filename: string
@@ -26,22 +34,15 @@ export async function getSignedUploadUrl(
   const serviceClient = createServiceClient();
   const ext = filename.split('.').pop() || 'bin';
   const path = creativeId + '/' + Date.now() + '.' + ext;
-
   const { data, error } = await serviceClient.storage
     .from('creatives')
     .createSignedUploadUrl(path);
-
   if (error || !data) {
     return { error: error?.message || 'Failed to create signed URL' };
   }
-
   return { signedUrl: data.signedUrl, path };
 }
 
-/**
- * After the client has uploaded directly to Supabase Storage,
- * record the asset metadata in the creatives table.
- */
 export async function saveAssetRecord(
   id: string,
   path: string,
@@ -49,24 +50,20 @@ export async function saveAssetRecord(
 ) {
   const supabase = await createClient();
   const serviceClient = createServiceClient();
-
   const assetType = mimeType.startsWith('video/') ? 'video' : 'image';
   const { data: { publicUrl } } = serviceClient.storage
     .from('creatives')
     .getPublicUrl(path);
-
   await supabase.from('creatives').update({
     asset_type: assetType,
     asset_url: publicUrl,
     asset_path: path,
     thumb_url: assetType === 'image' ? publicUrl : null,
   }).eq('id', id);
-
   revalidatePath('/admin/creatives/' + id);
   revalidatePath('/admin');
 }
 
-/** Legacy: kept for compatibility but no longer called from AssetUpload */
 export async function uploadAsset(id: string, formData: FormData) {
   const file = formData.get('file') as File;
   if (!file || !file.size) return;
