@@ -19,21 +19,21 @@ export default function TaggedProductsSection({ creativeId, products }: Props) {
               <div className="flex items-center justify-between mb-4">
                       <h2 className="text-base font-medium">
                         {products.length} product{products.length !== 1 ? 's' : ''} featured
-                      </h2>h2>
+                      </h2>
                       <button
                                   onClick={() => setPickerOpen(true)}
                                   className="h-9 px-4 rounded-full bg-rv-gray text-sm font-medium flex items-center gap-1.5 transition-all duration-250 active:scale-95 hover:opacity-70"
                                 >
                                 <Plus size={14} strokeWidth={1.6} />
                                 Add products
-                      </button>button>
-              </div>div>
+                      </button>
+              </div>
           {products.length > 0 && (
                   <div className="grid grid-cols-2 gap-0.5">
                     {products.map((p) => (
                                 <ProductChip key={p.id} product={p} creativeId={creativeId} />
                               ))}
-                  </div>div>
+                  </div>
               )}
           {pickerOpen && (
                   <ProductPickerModal
@@ -42,6 +42,8 @@ export default function TaggedProductsSection({ creativeId, products }: Props) {
                               onClose={() => setPickerOpen(false)}
                             />
                 )}
-        </div>div>
+        </div>
       );
-}</div>
+    </div>
+          );
+        }
