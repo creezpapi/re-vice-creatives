@@ -2,11 +2,15 @@ export type Creative = {
   id: string;
   title: string;
   notes: string | null;
-  status: 'draft' | 'active' | 'archived';
+  status: 'ready_to_launch' | 'active' | 'archived';
   asset_type: 'image' | 'video' | null;
   asset_url: string | null;
   asset_path: string | null;
   thumb_url: string | null;
+  platforms: string[];
+  ad_copy: string | null;
+  post_link: string | null;
+  ad_code: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -53,3 +57,14 @@ export type ShopifyVariant = {
   available: boolean;
   position: number;
 };
+
+export const PLATFORMS = [
+  { key: 'google_pmax', label: 'Google Performance Max' },
+  { key: 'tiktok_main', label: 'TikTok Main' },
+  { key: 'tiktok_gmv', label: 'TikTok GMV Max' },
+  { key: 'meta', label: 'Meta' },
+  { key: 'snapchat', label: 'Snapchat' },
+  { key: 'youtube_demandgen', label: 'YouTube Demand Gen' },
+] as const;
+
+export type PlatformKey = typeof PLATFORMS[number]['key'];
