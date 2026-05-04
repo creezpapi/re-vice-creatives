@@ -1,6 +1,7 @@
 'use client';
 
-import { useSearchParams, Suspense } from 'react';
+import { Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { signIn } from './actions';
 
 function LoginForm() {
