@@ -58,6 +58,16 @@ export type ShopifyVariant = {
   position: number;
 };
 
+export type ManualProduct = {
+  id: string;
+  name: string;
+  product_link: string | null;
+  image_url: string | null;
+  image_path: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 export const PLATFORMS = [
   { key: 'google_pmax', label: 'Google Performance Max' },
   { key: 'tiktok_main', label: 'TikTok Main' },
