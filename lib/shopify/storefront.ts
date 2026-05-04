@@ -47,7 +47,7 @@ export async function fetchAllProducts(): Promise<NormalizedShopifyProduct[]> {
   let cursor: string | null = null;
 
   while (true) {
-    const res = await fetch(
+    const res: Response = await fetch(
       `https://${DOMAIN}/api/${VERSION}/graphql.json`,
       {
         method: 'POST',
