@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useTransition } from 'react';
+import { useState, useRef } from 'react';
 import { X, Plus, Loader2, Upload } from 'lucide-react';
 import Modal from '@/components/common/Modal';
 import {
@@ -8,9 +8,8 @@ import {
   updateContentTask,
   upsertDeliverables,
   getSignedContentAssetUploadUrl,
-  getContentAssetPublicUrl,
 } from '@/app/admin/(authed)/content/actions';
-import type { ContentTask, ContentDeliverable, DeliverableType, TeamMember } from '@/lib/types';
+import type { ContentTask, DeliverableType, TeamMember } from '@/lib/types';
 import { TEAM_MEMBERS, DELIVERABLE_TYPES } from '@/lib/types';
 
 type Product = { id: string; name: string; image_url: string | null };
