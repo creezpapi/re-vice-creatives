@@ -19,6 +19,7 @@ export default async function AuthedLayout({ children }: { children: React.React
             <nav className="flex items-center gap-6 text-sm">
               <Link href="/admin" className="text-black hover:opacity-60 transition-all duration-250">Creatives</Link>
               <Link href="/admin/products" className="text-black hover:opacity-60 transition-all duration-250">Product library</Link>
+              <Link href="/admin/content" className="text-black hover:opacity-60 transition-all duration-250">Content creation</Link>
             </nav>
           </div>
           <form action={signOut}>
