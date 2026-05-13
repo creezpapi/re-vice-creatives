@@ -27,22 +27,12 @@ export default function DayDetailModal({ date, tasks, products, onClose, onEditT
 
   const productMap = Object.fromEntries(products.map(p => [p.id, p]));
 
-  async function handleExportPdf() {
+  function handleExportPdf() {
     setExporting(true);
-    try {
-      const res = await fetch(`/api/content/export-pdf?date=${date}`);
-      if (res.ok) {
-        const blob = await res.blob();
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `content-${date}.pdf`;
-        a.click();
-        URL.revokeObjectURL(url);
-      }
-    } finally {
-      setExporting(false);
-    }
+    // Open the HTML print page in a new tab — the page auto-calls window.print()
+    window.open(`/api/content/export-pdf?date=${date}`, '_blank');
+    // Reset button state after a short delay
+    setTimeout(() => setExporting(false), 1500);
   }
 
   return (
@@ -55,7 +45,7 @@ export default function DayDetailModal({ date, tasks, products, onClose, onEditT
           className="h-7 px-3 rounded-full bg-rv-gray text-xs flex items-center gap-1.5 hover:opacity-70 transition-all duration-250 disabled:opacity-40"
         >
           <FileDown size={12} strokeWidth={1.6} />
-          {exporting ? 'Exporting...' : 'Export PDF'}
+          {exporting ? 'Opening...' : 'Export PDF'}
         </button>
       </div>
 
