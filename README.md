@@ -36,3 +36,16 @@ Without Shopify env vars, the app uses mock product data.
 ## Deployment
 
 Deploy to Vercel. Add all env vars from `.env.local.example` to the Vercel project settings.
+
+
+## What's New
+
+### Content Creation page (/admin/content)
+
+A new admin page for the re-vice content team to plan and track creative work. Features:
+- Month-view filming calendar with task chips per day
+- Task creation modal with team member tags, filming/post dates, deliverables (type, reference link, tagged products, file uploads), filming team, editing team, products from library, and styling notes
+- Day detail panel with accordion task view and PDF export
+- Team member tabs showing each person's tasks with role tags (Tagged / Filming / Editing)
+
+**Before redeploying:** Run `supabase/migrations/003_content_creation.sql` in the Supabase SQL Editor. Then create a storage bucket named `content-assets` (public read) in the Supabase Storage dashboard.
