@@ -10,7 +10,6 @@ import {
   getSignedContentAssetUploadUrl,
   getContentAssetPublicUrl,
 } from '@/app/admin/(authed)/content/actions';
-import { createClient } from '@/lib/supabase/browser';
 import type { ContentTask, ContentDeliverable, DeliverableType, TeamMember } from '@/lib/types';
 import { TEAM_MEMBERS, DELIVERABLE_TYPES } from '@/lib/types';
 
