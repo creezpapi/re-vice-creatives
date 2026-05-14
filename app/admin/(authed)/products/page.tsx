@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import type { ManualProduct } from '@/lib/types';
 import AddProductModal from '@/components/admin/AddProductModal';
 import DeleteProductButton from '@/components/admin/DeleteProductButton';
+import EditProductModal from '@/components/admin/EditProductModal';
 import { ExternalLink } from 'lucide-react';
 
 export default async function ProductLibraryPage() {
@@ -9,7 +10,7 @@ export default async function ProductLibraryPage() {
 
   const { data: products } = await supabase
     .from('manual_products')
-    .select('id, name, product_link, image_url, image_path, created_at, updated_at')
+    .select('id, name, product_link, image_url, image_path, key_details, created_at, updated_at')
     .order('created_at', { ascending: false });
 
   const items: ManualProduct[] = products || [];
@@ -48,18 +49,26 @@ export default async function ProductLibraryPage() {
               </div>
               <div className="p-3">
                 <div className="flex items-start justify-between gap-2">
-                  <p className="text-sm font-medium leading-tight">{product.name}</p>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium leading-tight">{product.name}</p>
+                    {product.key_details && (
+                      <p className="text-xs text-rv-tab-inactive mt-1 leading-snug whitespace-pre-line line-clamp-3">
+                        {product.key_details}
+                      </p>
+                    )}
+                  </div>
                   <div className="flex items-center gap-1 flex-shrink-0">
                     {product.product_link && (
                       <a
                         href={product.product_link}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="h-6 w-6 flex items-center justify-center text-rv-tab-inactive hover:text-black transition-all duration-250"
+                        className="h-6 w-6 flex items-center justify-center rounded-full text-rv-tab-inactive hover:text-black transition-all duration-250"
                       >
                         <ExternalLink size={14} strokeWidth={1.6} />
                       </a>
                     )}
+                    <EditProductModal product={product} />
                     <DeleteProductButton id={product.id} name={product.name} />
                   </div>
                 </div>
