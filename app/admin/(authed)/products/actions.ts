@@ -56,6 +56,26 @@ export async function createManualProduct(name: string, productLink: string) {
   return { id: data.id };
 }
 
+export async function updateManualProduct(
+  id: string,
+  data: { name: string; product_link: string | null; key_details: string | null }
+) {
+  await requireAdmin();
+  const serviceClient = createServiceClient();
+  const { error } = await serviceClient
+    .from('manual_products')
+    .update({
+      name: data.name.trim(),
+      product_link: data.product_link?.trim() || null,
+      key_details: data.key_details?.trim() || null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', id);
+  if (error) throw error;
+  revalidatePath('/admin/products');
+  return { ok: true };
+}
+
 export async function deleteManualProduct(id: string) {
   await requireAdmin();
   const serviceClient = createServiceClient();
