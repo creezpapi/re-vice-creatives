@@ -1,12 +1,13 @@
 'use client';
 
 import { useState, useCallback, useMemo } from 'react';
-import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, BookOpen } from 'lucide-react';
 import type { ContentTask, TeamMember } from '@/lib/types';
 import { TEAM_MEMBERS } from '@/lib/types';
 import TaskModal from './TaskModal';
 import DayDetailModal from './DayDetailModal';
 import TeamMemberTabs from './TeamMemberTabs';
+import WeeklyBriefModal from './WeeklyBriefModal';
 
 type Product = { id: string; name: string; product_link: string | null; image_url: string | null };
 
@@ -27,8 +28,9 @@ export default function ContentPageClient({ initialTasks, products }: Props) {
   const [taskModalOpen, setTaskModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<ContentTask | null>(null);
   const [dayModalDate, setDayModalDate] = useState<string | null>(null);
+  const [weeklyBriefOpen, setWeeklyBriefOpen] = useState(false);
 
-  // ─── Calendar grid helpers ────────────────────────────────────────────────
+  // ─── Calendar grid helpers ────────────────────────────────────────────
   const calendarDays = useMemo(() => {
     const firstDay = new Date(viewYear, viewMonth, 1);
     const lastDay = new Date(viewYear, viewMonth + 1, 0);
@@ -77,13 +79,22 @@ export default function ContentPageClient({ initialTasks, products }: Props) {
       {/* Page header */}
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-medium tracking-tight">CONTENT CREATION</h1>
-        <button
-          onClick={() => { setEditingTask(null); setTaskModalOpen(true); }}
-          className="h-9 px-4 rounded-full bg-black text-white text-sm font-medium flex items-center gap-1.5 transition-all duration-250 active:scale-95 hover:opacity-70"
-        >
-          <Plus size={16} strokeWidth={1.6} />
-          Add Task
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setWeeklyBriefOpen(true)}
+            className="h-9 px-4 rounded-full bg-rv-gray text-black text-sm font-medium flex items-center gap-1.5 transition-all duration-250 active:scale-95 hover:opacity-70"
+          >
+            <BookOpen size={15} strokeWidth={1.6} />
+            Weekly Brief
+          </button>
+          <button
+            onClick={() => { setEditingTask(null); setTaskModalOpen(true); }}
+            className="h-9 px-4 rounded-full bg-black text-white text-sm font-medium flex items-center gap-1.5 transition-all duration-250 active:scale-95 hover:opacity-70"
+          >
+            <Plus size={16} strokeWidth={1.6} />
+            Add Task
+          </button>
+        </div>
       </div>
 
       {/* ─── Block 1: Calendar ─── */}
@@ -177,6 +188,14 @@ export default function ContentPageClient({ initialTasks, products }: Props) {
           onClose={() => setDayModalDate(null)}
           onEditTask={(t) => { setDayModalDate(null); setEditingTask(t); setTaskModalOpen(true); }}
           onSaved={(allTasks) => setTasks(allTasks)}
+        />
+      )}
+
+      {/* Weekly brief modal */}
+      {weeklyBriefOpen && (
+        <WeeklyBriefModal
+          products={products}
+          onClose={() => setWeeklyBriefOpen(false)}
         />
       )}
     </div>
