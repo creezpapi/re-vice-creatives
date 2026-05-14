@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useCallback, useTransition } from 'react';
+import { useState, useCallback } from 'react';
 import { X, Plus, ChevronLeft, ChevronRight, FileDown, Loader2 } from 'lucide-react';
 import Modal from '@/components/common/Modal';
-import { getBriefForWeek, upsertBriefDay, getMondayOf } from '@/app/admin/(authed)/content/weekly-brief-actions';
+import { getBriefForWeek, upsertBriefDay } from '@/app/admin/(authed)/content/weekly-brief-actions';
 import type { WeeklyBrief, WeeklyBriefDay, DeliverableType, TeamMember, WeekDayIndex } from '@/lib/types';
 import { TEAM_MEMBERS, DELIVERABLE_TYPES, WEEK_DAY_LABELS } from '@/lib/types';
 
@@ -29,6 +29,15 @@ function dayFromRow(d: WeeklyBriefDay): DayState {
     reference_url: d.reference_url ?? '',
     notes: d.notes ?? '',
   };
+}
+
+// Local helper: return Monday ISO date string for the week containing `date`
+function getMondayOf(date: Date): string {
+  const d = new Date(date);
+  const dow = d.getDay(); // 0=Sun
+  const diff = dow === 0 ? -6 : 1 - dow;
+  d.setDate(d.getDate() + diff);
+  return d.toISOString().slice(0, 10);
 }
 
 // ─── Reusable multi-select (same style as TaskModal) ──────────────────────────
@@ -155,14 +164,13 @@ type Props = {
 
 export default function WeeklyBriefModal({ products, onClose }: Props) {
   const [weekStart, setWeekStart] = useState(() => getMondayOf(new Date()));
-  const [brief, setBrief] = useState<WeeklyBrief | null>(null);
   const [activeDay, setActiveDay] = useState<WeekDayIndex>(0);
   const [dayStates, setDayStates] = useState<Record<number, DayState>>({});
   const [loadingWeek, setLoadingWeek] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
-  const [isPending, startTransition] = useTransition();
+  const [initialized, setInitialized] = useState(false);
 
   // Load brief whenever weekStart changes
   const loadWeek = useCallback(async (week: string) => {
@@ -170,8 +178,6 @@ export default function WeeklyBriefModal({ products, onClose }: Props) {
     setSaveError(null);
     try {
       const b = await getBriefForWeek(week);
-      setBrief(b);
-      // Seed day states from DB
       const states: Record<number, DayState> = {};
       for (let i = 0; i < 7; i++) {
         const row = (b.days ?? []).find(d => d.day_index === i);
@@ -185,13 +191,24 @@ export default function WeeklyBriefModal({ products, onClose }: Props) {
     }
   }, []);
 
-  // Load on mount
-  useState(() => { loadWeek(weekStart); });
+  // Load on mount (using ref pattern to avoid infinite loop)
+  if (!initialized) {
+    setInitialized(true);
+    loadWeek(weekStart);
+  }
 
   function navigateWeek(delta: number) {
     const newWeek = shiftWeek(weekStart, delta);
     setWeekStart(newWeek);
+    setActiveDay(0);
     loadWeek(newWeek);
+  }
+
+  function goThisWeek() {
+    const m = getMondayOf(new Date());
+    setWeekStart(m);
+    setActiveDay(0);
+    loadWeek(m);
   }
 
   function updateDay(patch: Partial<DayState>) {
@@ -251,15 +268,14 @@ export default function WeeklyBriefModal({ products, onClose }: Props) {
           className="h-8 w-8 rounded-full bg-rv-gray flex items-center justify-center hover:opacity-70 transition-all duration-250 active:scale-95">
           <ChevronRight size={15} strokeWidth={1.6} />
         </button>
-        <button
-          onClick={() => { const m = getMondayOf(new Date()); setWeekStart(m); loadWeek(m); }}
+        <button onClick={goThisWeek}
           className="h-7 px-3 rounded-full bg-rv-gray text-xs font-medium hover:opacity-70 transition-all duration-250 active:scale-95">
           This week
         </button>
       </div>
 
       {/* ── Day tabs ── */}
-      <div className="flex gap-1 mb-5 border-b border-rv-gray pb-0">
+      <div className="flex gap-1 mb-5 border-b border-rv-gray">
         {WEEK_DAY_LABELS.map((label, i) => {
           const st = dayStates[i] ?? emptyDay();
           const hasData = st.deliverable_types.length > 0 || st.team_members.length > 0 || st.product_ids.length > 0 || st.reference_url || st.notes;
