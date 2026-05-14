@@ -10,7 +10,7 @@ async function requireAdmin() {
   return supabase;
 }
 
-// ─── Tasks ────────────────────────────────────────────────────────────────────
+// ─── Tasks ────────────────────────────────────────────────────────────────────────────────
 
 export async function createContentTask(data: {
   name: string;
@@ -76,7 +76,7 @@ export async function deleteContentTask(id: string): Promise<void> {
   revalidatePath('/admin/content');
 }
 
-// ─── Deliverables ─────────────────────────────────────────────────────────────
+// ─── Deliverables ─────────────────────────────────────────────────────────────────────────────
 
 export async function upsertDeliverables(
   taskId: string,
@@ -86,6 +86,8 @@ export async function upsertDeliverables(
     reference_url: string | null;
     product_ids: string[];
     asset_paths: string[];
+    filming_team: TeamMember[];
+    editing_team: TeamMember[];
     position: number;
   }>
 ): Promise<void> {
@@ -101,6 +103,8 @@ export async function upsertDeliverables(
       reference_url: d.reference_url || null,
       product_ids: d.product_ids,
       asset_paths: d.asset_paths,
+      filming_team: d.filming_team,
+      editing_team: d.editing_team,
       position: i,
     }));
     const { error } = await supabase.from('content_deliverables').insert(rows);
@@ -110,7 +114,7 @@ export async function upsertDeliverables(
   revalidatePath('/admin/content');
 }
 
-// ─── Asset upload for deliverables ───────────────────────────────────────────
+// ─── Asset upload for deliverables ───────────────────────────────────────────────────────────────────────────
 
 export async function getSignedContentAssetUploadUrl(
   taskId: string,
