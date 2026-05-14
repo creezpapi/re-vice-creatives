@@ -1,46 +1,51 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { X, Plus, ChevronLeft, ChevronRight, FileDown, Loader2 } from 'lucide-react';
+import { X, Plus, ChevronLeft, ChevronRight, FileDown, Loader2, Trash2 } from 'lucide-react';
 import Modal from '@/components/common/Modal';
 import { getBriefForWeek, upsertBriefDay } from '@/app/admin/(authed)/content/weekly-brief-actions';
-import type { WeeklyBrief, WeeklyBriefDay, DeliverableType, TeamMember, WeekDayIndex } from '@/lib/types';
-import { TEAM_MEMBERS, DELIVERABLE_TYPES, WEEK_DAY_LABELS } from '@/lib/types';
+import type {
+  WeeklyBrief, WeeklyBriefDay, DeliverableType, TeamMember,
+  WeekDayIndex, ProductCategory, DeliverableItem,
+} from '@/lib/types';
+import {
+  TEAM_MEMBERS, DELIVERABLE_TYPES, WEEK_DAY_LABELS,
+  PRODUCT_CATEGORIES,
+} from '@/lib/types';
 
 type Product = { id: string; name: string; image_url: string | null };
 
 type DayState = {
-  deliverable_types: DeliverableType[];
-  team_members: TeamMember[];
+  product_category: ProductCategory[];
+  deliverable_items: DeliverableItem[];
   product_ids: string[];
-  reference_url: string;
   notes: string;
 };
 
 function emptyDay(): DayState {
-  return { deliverable_types: [], team_members: [], product_ids: [], reference_url: '', notes: '' };
+  return { product_category: [], deliverable_items: [], product_ids: [], notes: '' };
+}
+
+function emptyItem(): DeliverableItem {
+  return { type: DELIVERABLE_TYPES[0], team_members: [], reference_url: null };
 }
 
 function dayFromRow(d: WeeklyBriefDay): DayState {
   return {
-    deliverable_types: (d.deliverable_types ?? []) as DeliverableType[],
-    team_members: (d.team_members ?? []) as TeamMember[],
+    product_category: (d.product_category ?? []) as ProductCategory[],
+    deliverable_items: (d.deliverable_items ?? []) as DeliverableItem[],
     product_ids: d.product_ids ?? [],
-    reference_url: d.reference_url ?? '',
     notes: d.notes ?? '',
   };
 }
 
-// Local helper: return Monday ISO date string for the week containing `date`
 function getMondayOf(date: Date): string {
   const d = new Date(date);
-  const dow = d.getDay(); // 0=Sun
+  const dow = d.getDay();
   const diff = dow === 0 ? -6 : 1 - dow;
   d.setDate(d.getDate() + diff);
   return d.toISOString().slice(0, 10);
 }
-
-// ─── Reusable multi-select (same style as TaskModal) ──────────────────────────
 
 function MultiSelect<T extends string>({
   label,
@@ -59,7 +64,7 @@ function MultiSelect<T extends string>({
   }
   return (
     <div>
-      <label className="block text-xs font-medium mb-1.5">{label}</label>
+      {label && <label className="block text-xs font-medium mb-1.5">{label}</label>}
       <div className="flex flex-wrap gap-1.5 mb-1.5">
         {value.map(v => (
           <span key={v} className="h-7 px-2.5 rounded-full bg-black text-white text-xs flex items-center gap-1">
@@ -108,7 +113,7 @@ function ProductMultiSelect({
   const unselected = products.filter(p => !value.includes(p.id));
   return (
     <div>
-      <label className="block text-xs font-medium mb-1.5">Products</label>
+      <label className="block text-xs font-medium mb-1.5">Products from library</label>
       <div className="flex flex-wrap gap-1.5 mb-1.5">
         {selected.map(p => (
           <span key={p.id} className="h-7 px-2.5 rounded-full bg-black text-white text-xs flex items-center gap-1">
@@ -139,14 +144,64 @@ function ProductMultiSelect({
   );
 }
 
-// ─── Week helpers ──────────────────────────────────────────────────────────────
+function DeliverableItemRow({
+  item,
+  index,
+  total,
+  onChange,
+  onRemove,
+}: {
+  item: DeliverableItem;
+  index: number;
+  total: number;
+  onChange: (patch: Partial<DeliverableItem>) => void;
+  onRemove: () => void;
+}) {
+  return (
+    <div className="rounded-2xl border border-rv-gray p-4 space-y-3 relative">
+      <div className="flex items-center gap-2">
+        <select
+          value={item.type}
+          onChange={e => onChange({ type: e.target.value as DeliverableType })}
+          className="flex-1 h-8 px-2 text-xs border border-rv-gray rounded-full focus:outline-none focus:border-black transition-all duration-250 bg-white"
+        >
+          {DELIVERABLE_TYPES.map(t => (
+            <option key={t} value={t}>{t}</option>
+          ))}
+        </select>
+        {total > 1 && (
+          <button type="button" onClick={onRemove}
+            className="h-7 w-7 rounded-full bg-rv-gray flex items-center justify-center hover:opacity-70 transition-all duration-250 flex-shrink-0">
+            <Trash2 size={12} strokeWidth={1.6} />
+          </button>
+        )}
+      </div>
+      <MultiSelect<TeamMember>
+        label="Team members"
+        options={TEAM_MEMBERS}
+        value={item.team_members as TeamMember[]}
+        onChange={v => onChange({ team_members: v })}
+      />
+      <div>
+        <label className="block text-xs font-medium mb-1.5">Reference link</label>
+        <input
+          type="url"
+          value={item.reference_url ?? ''}
+          onChange={e => onChange({ reference_url: e.target.value || null })}
+          placeholder="https://..."
+          className="w-full h-8 px-3 text-xs border border-rv-gray rounded-full focus:outline-none focus:border-black transition-all duration-250"
+        />
+      </div>
+    </div>
+  );
+}
 
 function formatWeekLabel(monday: string) {
   const d = new Date(monday + 'T00:00:00');
   const end = new Date(d);
   end.setDate(end.getDate() + 6);
   const fmt = (dt: Date) => dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  return `${fmt(d)} – ${fmt(end)}, ${end.getFullYear()}`;
+  return fmt(d) + ' – ' + fmt(end) + ', ' + end.getFullYear();
 }
 
 function shiftWeek(monday: string, delta: number): string {
@@ -154,8 +209,6 @@ function shiftWeek(monday: string, delta: number): string {
   d.setDate(d.getDate() + delta * 7);
   return d.toISOString().slice(0, 10);
 }
-
-// ─── Main modal ───────────────────────────────────────────────────────────────
 
 type Props = {
   products: Product[];
@@ -172,7 +225,6 @@ export default function WeeklyBriefModal({ products, onClose }: Props) {
   const [exporting, setExporting] = useState(false);
   const [initialized, setInitialized] = useState(false);
 
-  // Load brief whenever weekStart changes
   const loadWeek = useCallback(async (week: string) => {
     setLoadingWeek(true);
     setSaveError(null);
@@ -191,7 +243,6 @@ export default function WeeklyBriefModal({ products, onClose }: Props) {
     }
   }, []);
 
-  // Load on mount (using ref pattern to avoid infinite loop)
   if (!initialized) {
     setInitialized(true);
     loadWeek(weekStart);
@@ -215,16 +266,32 @@ export default function WeeklyBriefModal({ products, onClose }: Props) {
     setDayStates(prev => ({ ...prev, [activeDay]: { ...(prev[activeDay] ?? emptyDay()), ...patch } }));
   }
 
+  function updateItem(index: number, patch: Partial<DeliverableItem>) {
+    const day = dayStates[activeDay] ?? emptyDay();
+    const items = [...day.deliverable_items];
+    items[index] = { ...items[index], ...patch };
+    updateDay({ deliverable_items: items });
+  }
+
+  function addItem() {
+    const day = dayStates[activeDay] ?? emptyDay();
+    updateDay({ deliverable_items: [...day.deliverable_items, emptyItem()] });
+  }
+
+  function removeItem(index: number) {
+    const day = dayStates[activeDay] ?? emptyDay();
+    updateDay({ deliverable_items: day.deliverable_items.filter((_, i) => i !== index) });
+  }
+
   async function saveDay() {
     const state = dayStates[activeDay] ?? emptyDay();
     setSaving(true);
     setSaveError(null);
     try {
       await upsertBriefDay(weekStart, activeDay as WeekDayIndex, {
-        deliverable_types: state.deliverable_types,
-        team_members: state.team_members,
+        product_category: state.product_category,
+        deliverable_items: state.deliverable_items,
         product_ids: state.product_ids,
-        reference_url: state.reference_url || null,
         notes: state.notes || null,
       });
     } catch (e) {
@@ -236,7 +303,7 @@ export default function WeeklyBriefModal({ products, onClose }: Props) {
 
   function handleExportPdf() {
     setExporting(true);
-    window.open(`/api/content/weekly-brief-pdf?week=${weekStart}`, '_blank');
+    window.open('/api/content/weekly-brief-pdf?week=' + weekStart, '_blank');
     setTimeout(() => setExporting(false), 1500);
   }
 
@@ -244,7 +311,6 @@ export default function WeeklyBriefModal({ products, onClose }: Props) {
 
   return (
     <Modal onClose={onClose} wide>
-      {/* ── Header ── */}
       <div className="flex items-center justify-between mb-5 pr-8">
         <h2 className="text-lg font-medium">Weekly Brief</h2>
         <button
@@ -257,7 +323,6 @@ export default function WeeklyBriefModal({ products, onClose }: Props) {
         </button>
       </div>
 
-      {/* ── Week picker ── */}
       <div className="flex items-center gap-3 mb-5">
         <button onClick={() => navigateWeek(-1)}
           className="h-8 w-8 rounded-full bg-rv-gray flex items-center justify-center hover:opacity-70 transition-all duration-250 active:scale-95">
@@ -274,11 +339,10 @@ export default function WeeklyBriefModal({ products, onClose }: Props) {
         </button>
       </div>
 
-      {/* ── Day tabs ── */}
       <div className="flex gap-1 mb-5 border-b border-rv-gray">
         {WEEK_DAY_LABELS.map((label, i) => {
           const st = dayStates[i] ?? emptyDay();
-          const hasData = st.deliverable_types.length > 0 || st.team_members.length > 0 || st.product_ids.length > 0 || st.reference_url || st.notes;
+          const hasData = st.product_category.length > 0 || st.deliverable_items.length > 0 || st.product_ids.length > 0 || st.notes;
           return (
             <button
               key={i}
@@ -297,49 +361,51 @@ export default function WeeklyBriefModal({ products, onClose }: Props) {
         })}
       </div>
 
-      {/* ── Day form ── */}
       {loadingWeek ? (
         <div className="flex items-center justify-center py-16">
           <Loader2 size={20} strokeWidth={1.6} className="animate-spin text-rv-tab-inactive" />
         </div>
       ) : (
         <div className="space-y-5">
-          {/* Field 1: Deliverable types */}
-          <MultiSelect<DeliverableType>
-            label="Deliverable types"
-            options={DELIVERABLE_TYPES}
-            value={day.deliverable_types}
-            onChange={v => updateDay({ deliverable_types: v })}
+          <MultiSelect<ProductCategory>
+            label="Product categories"
+            options={PRODUCT_CATEGORIES}
+            value={day.product_category}
+            onChange={v => updateDay({ product_category: v })}
           />
 
-          {/* Field 2: Team members */}
-          <MultiSelect<TeamMember>
-            label="Team members"
-            options={TEAM_MEMBERS}
-            value={day.team_members}
-            onChange={v => updateDay({ team_members: v })}
-          />
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-xs font-medium">Deliverables</label>
+              <button type="button" onClick={addItem}
+                className="h-7 px-2.5 rounded-full bg-rv-gray text-xs font-medium flex items-center gap-1 hover:opacity-70 transition-all duration-250">
+                <Plus size={10} strokeWidth={2} /> Add deliverable
+              </button>
+            </div>
+            {day.deliverable_items.length === 0 ? (
+              <p className="text-xs text-rv-tab-inactive py-2">No deliverables yet. Click &quot;Add deliverable&quot; to get started.</p>
+            ) : (
+              <div className="space-y-3">
+                {day.deliverable_items.map((item, idx) => (
+                  <DeliverableItemRow
+                    key={idx}
+                    item={item}
+                    index={idx}
+                    total={day.deliverable_items.length}
+                    onChange={patch => updateItem(idx, patch)}
+                    onRemove={() => removeItem(idx)}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
 
-          {/* Field 3: Products */}
           <ProductMultiSelect
             products={products}
             value={day.product_ids}
             onChange={v => updateDay({ product_ids: v })}
           />
 
-          {/* Field 4: Reference link */}
-          <div>
-            <label className="block text-xs font-medium mb-1.5">Reference link</label>
-            <input
-              type="url"
-              value={day.reference_url}
-              onChange={e => updateDay({ reference_url: e.target.value })}
-              placeholder="https://..."
-              className="w-full h-9 px-3 text-sm border border-rv-gray rounded-full focus:outline-none focus:border-black transition-all duration-250"
-            />
-          </div>
-
-          {/* Field 5: Notes */}
           <div>
             <label className="block text-xs font-medium mb-1.5">Notes</label>
             <textarea
@@ -353,7 +419,6 @@ export default function WeeklyBriefModal({ products, onClose }: Props) {
 
           {saveError && <p className="text-xs text-red-500">{saveError}</p>}
 
-          {/* Actions */}
           <div className="flex items-center justify-between pt-4 border-t border-rv-gray">
             <button type="button" onClick={onClose}
               className="h-9 px-4 rounded-full border border-rv-gray text-sm transition-all duration-250 hover:opacity-70">
