@@ -136,3 +136,31 @@ created_at: string;
 updated_at: string;
 deliverables?: ContentDeliverable[];
 };
+
+// ─── Weekly Brief types ────────────────────────────────────────────────────────────────────────────────
+
+// day_index: 0 = Monday, 1 = Tuesday, ... 6 = Sunday
+export const WEEK_DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as const;
+export type WeekDayIndex = 0 | 1 | 2 | 3 | 4 | 5 | 6;
+
+export type WeeklyBriefDay = {
+id: string;
+brief_id: string;
+day_index: WeekDayIndex;
+// Five per-day fields
+deliverable_types: DeliverableType[];
+team_members: TeamMember[];
+product_ids: string[];
+reference_url: string | null;
+notes: string | null;
+created_at: string;
+updated_at: string;
+};
+
+export type WeeklyBrief = {
+id: string;
+week_start: string; // ISO date string — always the Monday
+created_at: string;
+updated_at: string;
+days?: WeeklyBriefDay[];
+};
