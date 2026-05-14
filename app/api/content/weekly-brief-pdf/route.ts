@@ -8,10 +8,10 @@ export async function GET(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const week = req.nextUrl.searchParams.get('week'); // YYYY-MM-DD (Monday)
+  const week = req.nextUrl.searchParams.get('week');
   if (!week) return NextResponse.json({ error: 'week param required' }, { status: 400 });
 
-  // Fetch brief + days
+  // Fetch brief + all 7 days
   const { data: brief } = await supabase
     .from('weekly_briefs')
     .select('*')
@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
     .eq('brief_id', brief.id)
     .order('day_index', { ascending: true })).data ?? [] : [];
 
-  // Fetch products for name lookup
+  // Fetch products for name/image lookup
   const { data: products } = await supabase
     .from('manual_products')
     .select('id, name, image_url, key_details, product_link');
@@ -35,10 +35,10 @@ export async function GET(req: NextRequest) {
   );
 
   function esc(s: string) {
-    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
 
-  // Compute week label
+  // Week label
   const weekDate = new Date(week + 'T00:00:00');
   const endDate = new Date(weekDate);
   endDate.setDate(endDate.getDate() + 6);
@@ -57,30 +57,38 @@ export async function GET(req: NextRequest) {
     </div>`;
   }
 
-  // Build a map of day_index -> day row
+  type DeliverableItem = { type: string; team_members: string[]; reference_url: string | null };
+
   const dayMap: Record<number, typeof days[0]> = Object.fromEntries(days.map(d => [d.day_index, d]));
 
   const daysHtml = DAY_LABELS.map((label, i) => {
     const d = dayMap[i];
+    const delivItems: DeliverableItem[] = d?.deliverable_items ?? [];
+    const productCats: string[] = d?.product_category ?? [];
     const isEmpty = !d || (
-      !d.deliverable_types?.length &&
-      !d.team_members?.length &&
-      !d.product_ids?.length &&
-      !d.reference_url &&
+      productCats.length === 0 &&
+      delivItems.length === 0 &&
+      !(d.product_ids?.length) &&
       !d.notes
     );
 
-    // Date label for this day
     const dayDate = new Date(weekDate);
     dayDate.setDate(dayDate.getDate() + i);
     const dayDateLabel = dayDate.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
 
+    const delivHtml = delivItems.map(item => `
+      <div class="deliv-item">
+        <div class="deliv-type">${esc(item.type)}</div>
+        ${item.team_members?.length ? `<div class="field"><span class="label">Team:</span> ${item.team_members.map(esc).join(', ')}</div>` : ''}
+        ${item.reference_url ? `<div class="field"><span class="label">Ref:</span> <a href="${esc(item.reference_url)}">${esc(item.reference_url)}</a></div>` : ''}
+      </div>
+    `).join('');
+
     return `<div class="day${isEmpty ? ' empty-day' : ''}">
       <div class="day-header">${esc(dayDateLabel)}</div>
       ${isEmpty ? '<p class="empty-text">No brief for this day.</p>' : `
-        ${d.deliverable_types?.length ? `<div class="field"><span class="label">Deliverables:</span> ${(d.deliverable_types as string[]).map(esc).join(', ')}</div>` : ''}
-        ${d.team_members?.length ? `<div class="field"><span class="label">Team:</span> ${(d.team_members as string[]).map(esc).join(', ')}</div>` : ''}
-        ${d.reference_url ? `<div class="field"><span class="label">Reference:</span> <a href="${esc(d.reference_url)}">${esc(d.reference_url)}</a></div>` : ''}
+        ${productCats.length ? `<div class="field"><span class="label">Categories:</span> ${productCats.map(esc).join(', ')}</div>` : ''}
+        ${delivItems.length ? `<div class="section-label">Deliverables</div>${delivHtml}` : ''}
         ${d.notes ? `<div class="field notes-field"><span class="label">Notes:</span><div class="notes">${esc(d.notes).replace(/\n/g, '<br/>')}</div></div>` : ''}
         ${d.product_ids?.length ? `<div class="products-label label">Products:</div><div class="product-cards">${(d.product_ids as string[]).map(productCardHtml).join('')}</div>` : ''}
       `}
@@ -104,6 +112,9 @@ h1 { font-size: 20px; font-weight: 600; margin-bottom: 6px; }
 .empty-text { color: #bbb; font-style: italic; font-size: 11px; }
 .field { margin-bottom: 5px; line-height: 1.5; }
 .label { font-weight: 600; color: #444; margin-right: 4px; }
+.section-label { font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: #444; margin: 8px 0 6px; }
+.deliv-item { background: #f8f8f8; border-radius: 6px; padding: 8px 10px; margin-bottom: 6px; }
+.deliv-type { font-weight: 700; font-size: 11px; margin-bottom: 3px; }
 .notes-field .notes { margin-top: 2px; white-space: pre-line; color: #333; }
 a { color: #0066cc; word-break: break-all; }
 .products-label { margin-top: 8px; margin-bottom: 6px; display: block; }
