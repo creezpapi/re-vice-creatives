@@ -21,6 +21,8 @@ type DeliverableState = {
   product_ids: string[];
   asset_paths: string[];
   asset_previews: string[];
+  filming_team: TeamMember[];
+  editing_team: TeamMember[];
 };
 
 type Props = {
@@ -76,6 +78,60 @@ function MultiSelect({
               type="button"
               onClick={() => { toggle(o); }}
               className="w-full text-left px-3 py-2 text-sm hover:bg-rv-gray transition-all duration-250"
+            >
+              {o}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function InlineMultiSelect({
+  label,
+  options,
+  value,
+  onChange,
+}: {
+  label: string;
+  options: readonly string[];
+  value: string[];
+  onChange: (v: string[]) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  function toggle(o: string) {
+    onChange(value.includes(o) ? value.filter(x => x !== o) : [...value, o]);
+  }
+  return (
+    <div>
+      <label className="block text-xs font-medium mb-1">{label}</label>
+      <div className="flex flex-wrap gap-1.5 mb-1">
+        {value.map(v => (
+          <span key={v} className="h-6 px-2.5 rounded-full bg-black text-white text-xs flex items-center gap-1">
+            {v}
+            <button type="button" onClick={() => toggle(v)} className="hover:opacity-70">
+              <X size={9} strokeWidth={2} />
+            </button>
+          </span>
+        ))}
+        <button
+          type="button"
+          onClick={() => setOpen(!open)}
+          className="h-6 px-2 rounded-full bg-white text-xs flex items-center gap-1 hover:opacity-70 transition-all duration-250"
+        >
+          <Plus size={9} strokeWidth={2} />
+          Add
+        </button>
+      </div>
+      {open && (
+        <div className="border border-rv-gray bg-white rounded-xl overflow-hidden mb-1.5">
+          {options.filter(o => !value.includes(o)).map(o => (
+            <button
+              key={o}
+              type="button"
+              onClick={() => { toggle(o); }}
+              className="w-full text-left px-3 py-1.5 text-xs hover:bg-rv-gray transition-all duration-250"
             >
               {o}
             </button>
@@ -149,8 +205,6 @@ export default function TaskModal({ task, products, onClose, onSaved }: Props) {
   const [filmingDate, setFilmingDate] = useState(task?.filming_date ?? '');
   const [postDate, setPostDate] = useState(task?.post_date ?? '');
   const [teamMemberTags, setTeamMemberTags] = useState<TeamMember[]>(task?.team_member_tags ?? []);
-  const [filmingTeam, setFilmingTeam] = useState<TeamMember[]>(task?.filming_team ?? []);
-  const [editingTeam, setEditingTeam] = useState<TeamMember[]>(task?.editing_team ?? []);
   const [productIds, setProductIds] = useState<string[]>(task?.product_ids ?? []);
   const [stylingNotes, setStylingNotes] = useState(task?.styling_notes ?? '');
   const [deliverables, setDeliverables] = useState<DeliverableState[]>(
@@ -161,6 +215,8 @@ export default function TaskModal({ task, products, onClose, onSaved }: Props) {
       product_ids: d.product_ids,
       asset_paths: d.asset_paths,
       asset_previews: [],
+      filming_team: (d.filming_team ?? []) as TeamMember[],
+      editing_team: (d.editing_team ?? []) as TeamMember[],
     })) ?? []
   );
   const [loading, setLoading] = useState(false);
@@ -175,6 +231,8 @@ export default function TaskModal({ task, products, onClose, onSaved }: Props) {
       product_ids: [],
       asset_paths: [],
       asset_previews: [],
+      filming_team: [],
+      editing_team: [],
     }]);
   }
 
@@ -215,8 +273,8 @@ export default function TaskModal({ task, products, onClose, onSaved }: Props) {
         filming_date: filmingDate || null,
         post_date: postDate || null,
         team_member_tags: teamMemberTags,
-        filming_team: filmingTeam,
-        editing_team: editingTeam,
+        filming_team: [],
+        editing_team: [],
         product_ids: productIds,
         styling_notes: stylingNotes || null,
       };
@@ -231,6 +289,8 @@ export default function TaskModal({ task, products, onClose, onSaved }: Props) {
         reference_url: d.reference_url || null,
         product_ids: d.product_ids,
         asset_paths: d.asset_paths,
+        filming_team: d.filming_team,
+        editing_team: d.editing_team,
         position: i,
       })));
       // Refresh tasks by fetching from server via a simple reload signal
@@ -312,6 +372,20 @@ export default function TaskModal({ task, products, onClose, onSaved }: Props) {
                   </div>
                   <ProductMultiSelect label="Tagged products" products={products} value={d.product_ids}
                     onChange={v => updateDeliverable(d.key, { product_ids: v })} />
+                  <div className="grid grid-cols-2 gap-3">
+                    <InlineMultiSelect
+                      label="Filming team"
+                      options={TEAM_MEMBERS}
+                      value={d.filming_team}
+                      onChange={v => updateDeliverable(d.key, { filming_team: v as TeamMember[] })}
+                    />
+                    <InlineMultiSelect
+                      label="Editing team"
+                      options={TEAM_MEMBERS}
+                      value={d.editing_team}
+                      onChange={v => updateDeliverable(d.key, { editing_team: v as TeamMember[] })}
+                    />
+                  </div>
                   <div>
                     <label className="block text-xs font-medium mb-1">Assets</label>
                     <div className="flex flex-wrap gap-2 mb-2">
@@ -338,12 +412,6 @@ export default function TaskModal({ task, products, onClose, onSaved }: Props) {
             ))}
           </div>
         </div>
-
-        {/* Filming team */}
-        <MultiSelect label="Filming team" options={TEAM_MEMBERS} value={filmingTeam} onChange={v => setFilmingTeam(v as TeamMember[])} />
-
-        {/* Editing team */}
-        <MultiSelect label="Editing team" options={TEAM_MEMBERS} value={editingTeam} onChange={v => setEditingTeam(v as TeamMember[])} />
 
         {/* Products from library */}
         <ProductMultiSelect label="Products from library" products={products} value={productIds} onChange={setProductIds} />
