@@ -83,12 +83,6 @@ export default function DayDetailModal({ date, tasks, products, onClose, onEditT
                     {task.team_member_tags.length > 0 && (
                       <ChipRow label="Team" items={task.team_member_tags} />
                     )}
-                    {task.filming_team.length > 0 && (
-                      <ChipRow label="Filming team" items={task.filming_team} />
-                    )}
-                    {task.editing_team.length > 0 && (
-                      <ChipRow label="Editing team" items={task.editing_team} />
-                    )}
                     {task.product_ids.length > 0 && (
                       <ChipRow label="Products" items={task.product_ids.map(id => productMap[id]?.name ?? id)} />
                     )}
@@ -103,19 +97,29 @@ export default function DayDetailModal({ date, tasks, products, onClose, onEditT
                         <span className="text-xs text-rv-tab-inactive block mb-1.5">Deliverables ({task.deliverables.length})</span>
                         <div className="space-y-2">
                           {task.deliverables.map((d, i) => (
-                            <div key={d.id ?? i} className="bg-rv-gray rounded-xl p-3">
+                            <div key={d.id ?? i} className="bg-rv-gray rounded-xl p-3 space-y-1.5">
                               <p className="text-xs font-medium">{d.deliverable_type}</p>
                               {d.reference_url && (
                                 <a href={d.reference_url} target="_blank" rel="noopener noreferrer"
-                                  className="text-xs text-rv-tab-inactive underline break-all">{d.reference_url}</a>
+                                  className="text-xs text-rv-tab-inactive underline break-all block">{d.reference_url}</a>
                               )}
                               {d.product_ids.length > 0 && (
-                                <p className="text-xs text-rv-tab-inactive mt-0.5">
+                                <p className="text-xs text-rv-tab-inactive">
                                   Products: {d.product_ids.map(id => productMap[id]?.name ?? id).join(', ')}
                                 </p>
                               )}
+                              {d.filming_team && d.filming_team.length > 0 && (
+                                <p className="text-xs text-rv-tab-inactive">
+                                  <span className="font-medium text-black">Filming:</span> {d.filming_team.join(', ')}
+                                </p>
+                              )}
+                              {d.editing_team && d.editing_team.length > 0 && (
+                                <p className="text-xs text-rv-tab-inactive">
+                                  <span className="font-medium text-black">Editing:</span> {d.editing_team.join(', ')}
+                                </p>
+                              )}
                               {d.asset_paths.length > 0 && (
-                                <p className="text-xs text-rv-tab-inactive mt-0.5">
+                                <p className="text-xs text-rv-tab-inactive">
                                   Files: {d.asset_paths.map(p => p.split('/').pop()).join(', ')}
                                 </p>
                               )}
