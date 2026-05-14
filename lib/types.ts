@@ -66,6 +66,7 @@ export type ManualProduct = {
   product_link: string | null;
   image_url: string | null;
   image_path: string | null;
+  key_details: string | null;
   created_at: string;
   updated_at: string;
 };
