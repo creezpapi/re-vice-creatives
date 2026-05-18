@@ -1,4 +1,4 @@
-'use client';
+───────────────────────────────────────────────────────'use client';
 
 import { useState, useRef } from 'react';
 import { X, Plus, Loader2, Upload } from 'lucide-react';
